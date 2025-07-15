@@ -51,7 +51,7 @@ function saveTiff(doc) {
     var maxX = tempBounds[2];
     var minY = tempBounds[3];
 
-    var margin = 1;
+    var margin = 0;
     doc.artboards[0].artboardRect = [minX - margin, maxY + margin, maxX + margin, minY - margin];
 
     // アートボードの座標を取得 (left, top, right, bottom)
