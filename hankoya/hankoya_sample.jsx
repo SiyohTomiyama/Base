@@ -29,7 +29,7 @@ function createDialog() {
     edittext1.preferredSize.width = 200;
     edittext1.preferredSize.height = 200;
     //デバッグ用
-    edittext1.text = "受注番号: 10035393\n製品番号: 1\n出品名: 定型ｺﾞﾑ印ﾌﾘｰﾃｷｽﾄ5×51mm\n書体: 角ゴシック体\n大木の向き: ヨコ型\n印面内容: ＴＥＬ：06 - 6225 - 2110　ＦＡＸ：06 - 6225 - 2113"
+    //edittext1.text = "受注番号: 10035393\n製品番号: 1\n出品名: 定型ｺﾞﾑ印ﾌﾘｰﾃｷｽﾄ5×51mm\n書体: 角ゴシック体\n大木の向き: ヨコ型\n印面内容: ＴＥＬ：06 - 6225 - 2110　ＦＡＸ：06 - 6225 - 2113"
 
     var button2 = dialog.add("button", undefined, undefined, { name: "button2" });
     button2.text = "Cancel";
