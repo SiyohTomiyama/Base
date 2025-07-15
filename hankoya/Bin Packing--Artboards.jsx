@@ -40,14 +40,24 @@
  */
 //@include 'Packer.js'
 //@include 'packer-blocks.js'
-(function () {
-
+function binMain() {
     if (
         0 === app.documents.length
     )
         return alert('No document');
 
     if (0 === app.activeDocument.selection.length) {
+        var doc = app.activeDocument;
+        for (var i = doc.layers.length - 1; i >= 0; i--) {
+            if (doc.layers[i].name != "カットライン") {
+                var theLayer = doc.layers[i];
+                theLayer.locked = false;
+                theLayer.visible = true;
+                theLayer.remove();
+            }
+        }
+        doc.activeLayer = doc.layers["カットライン"];
+
         var imageFolder = Folder.selectDialog("フォルダーを選んで");
         if (imageFolder == null) {
             return alert('failed');
@@ -75,7 +85,7 @@
         items: app.activeDocument.selection,
 
         // space between items, in pts, or can use 'mm' or 'inch'
-        padding: '1mm',
+        padding: '0mm',
 
         // space around edges of artboards, in pts, or can use 'mm' or 'inch'
         margin: '5mm',
@@ -149,8 +159,7 @@
     packItemsIllustrator(settings);
 
     pb.close();
-
-})();
+}
 
 /**
  * Packs items in document.
@@ -758,3 +767,77 @@ function listBlocks(blocks) {
     return str;
 
 };
+
+function main() {
+    binMain();
+
+    var doc = app.activeDocument;
+
+    // アートボードの座標を取得 (left, top, right, bottom)
+    var artboardRect = doc.artboards[0].artboardRect;
+    var artboardLeft = artboardRect[0];
+    var artboardTop = artboardRect[1];
+    var artboardRight = artboardRect[2];
+    var artboardBottom = artboardRect[3];
+
+    // アートボードの幅と高さを計算
+    var artboardWidth = artboardRight - artboardLeft;
+    var artboardHeight = artboardTop - artboardBottom;
+
+    // 新しい長方形を作成
+    // doc.pathItems.rectangle(top, left, width, height) の順で指定
+    var rect = doc.pathItems.rectangle(artboardTop, artboardLeft, artboardWidth, artboardHeight);
+
+    // 塗りの色をRGB(0, 0, 0) (黒) に設定
+    var fillColor = new RGBColor();
+    fillColor.red = 0;
+    fillColor.green = 0;
+    fillColor.blue = 0;
+
+    rect.fillColor = fillColor; // 塗り色を設定
+    rect.filled = true;          // 塗りを有効にする
+    rect.stroked = false;        // 線を無効にする (塗りだけにするため)
+
+    // 作成した長方形を最背面へ移動
+    rect.zOrder(ZOrderMethod.SENDTOBACK);
+
+    app.executeMenuCommand("selectall");
+    var selectedItems = doc.selection;
+    var originalSelectionCount = selectedItems.length; // 元の選択数
+
+    // 回転角度 (反時計回りに90度)
+    var angle = 90; // 90度で反時計回りに90度
+
+    var tempGroup = null; // 一時的なグループを保持する変数
+
+    // 選択オブジェクトをグループ化
+    tempGroup = doc.groupItems.add(); // 新しいグループを作成
+    for (var i = originalSelectionCount - 1; i >= 0; i--) {
+        selectedItems[i].move(tempGroup, ElementPlacement.PLACEATBEGINNING);
+    }
+    // グループ化したオブジェクトを選択状態にする
+    doc.selection = null; // 現在の選択を解除
+    tempGroup.selected = true; // グループを選択状態にする
+
+    // グループ全体を回転
+    // 回転の中心はグループの中心になります
+    tempGroup.rotate(angle, true, false, false, false, Transformation.CENTER);
+
+    // ExportOptionsTIFF オブジェクトを作成し、設定 (先に定義することで解像度を参照可能に)
+    var exportOptions = new ExportOptionsTIFF();
+    exportOptions.resolution = 450; // 解像度 (ppi)
+    exportOptions.byteOrder = TIFFByteOrder.IBMPC;
+    exportOptions.lZWCompression = true;
+    exportOptions.imageColorSpace = ImageColorSpace.RGB;
+    exportOptions.artboardClipping = false;
+
+    // ファイル名を生成
+    var destFolder = "~/Downloads/hankoyaData/";
+    var fileName = "sample.tif";
+    var destFile = new File(destFolder + "/" + fileName);
+    doc.exportFile(destFile, ExportType.TIFF, exportOptions);
+    doc.close(SaveOptions.DONOTSAVECHANGES);
+    alert("周半してTIFFに保存しました");
+}
+
+main();
