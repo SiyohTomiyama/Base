@@ -837,7 +837,7 @@ function main() {
     var destFile = new File(destFolder + "/" + fileName);
     doc.exportFile(destFile, ExportType.TIFF, exportOptions);
     doc.close(SaveOptions.DONOTSAVECHANGES);
-    alert("周半してTIFFに保存しました");
+    alert("集版してTIFFに保存しました");
 }
 
 main();
