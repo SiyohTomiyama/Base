@@ -832,8 +832,8 @@ function main() {
     exportOptions.artboardClipping = false;
 
     // ファイル名を生成
-    var destFolder = "~/Downloads/hankoyaData/";
-    var fileName = "sample.tif";
+    var destFolder = "~/Downloads/hankoya/個別データ/";
+    var fileName = "版下データ.tif";
     var destFile = new File(destFolder + "/" + fileName);
     doc.exportFile(destFile, ExportType.TIFF, exportOptions);
     doc.close(SaveOptions.DONOTSAVECHANGES);

@@ -92,7 +92,7 @@ function getTemplate(str) {
 
         // 最終的な文字列を結合
         outputString = formattedNum1 + formattedNum2 + ".ai";
-        var aiPath = "~/Downloads/hankoTplt/" + outputString;
+        var aiPath = "~/Downloads/hankoya/hankoTplt/" + outputString;
         aiFile = new File(aiPath);
     } else {
         aiFile = null;
@@ -117,7 +117,7 @@ function saveAiFile(name, product, subNo) {
 
 // 保存先を取得
 function getSaveFolder() {
-    var saveFolderPath = "~/Downloads/hankoyaData/";
+    var saveFolderPath = "~/Downloads/hankoya/個別データ/";
 
     var folderObj = new Folder(saveFolderPath);
     if (!folderObj.exists) {
@@ -166,7 +166,87 @@ function processPrintString(doc, paramsFont, paramsPrint) {
     charAttributes.textFont = app.textFonts.getByName(textFont);
 
     // フォントサイズの設定
-    charAttributes.size = 13; // 13pt
+    if (paramsPrint.indexOf("\\n") !== -1) {
+        newTextFrame.contents = paramsPrint.replace(/\\n/g, '\n');
+        setFontSizeAndRemoveSizeIndicator(newTextFrame);
+    } else {
+        charAttributes.size = 13;
+    }
+
+}
+
+function setFontSizeAndRemoveSizeIndicator(textFrame) {
+    if (!textFrame || textFrame.typename !== "TextFrame") {
+        alert("テキストフレームを選択してください。");
+        return;
+    }
+
+    var originalContents = textFrame.contents;
+
+    // 1. 全ての改行コードを \n に統一して正規化
+    var normalizedContents = originalContents.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // 2. 行ごとに分割（これはまだ元の行データ）
+    var lines = normalizedContents.split('\n');
+
+    var newLinesContent = [];   // サイズ表示を削除した新しい行のテキストを格納
+    var lineAttributes = [];    // 各行に適用するフォントサイズと元の行の文字長を格納
+
+    // 最初にすべての行について、新しい内容とフォントサイズを決定する
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        var fontSize = 11; // デフォルトは11pt
+        var cleanedLine = line; // サイズ表示を削除した行のテキスト
+        var indicatorLength = 0; // 削除するサイズ表示の文字数
+
+        if (line.match(/（小）$/)) {
+            fontSize = 11;
+            cleanedLine = line.replace(/（小）$/, '');
+            indicatorLength = 3; // 「（小）」は3文字
+        } else if (line.match(/（中）$/)) {
+            fontSize = 15;
+            cleanedLine = line.replace(/（中）$/, '');
+            indicatorLength = 3; // 「（中）」は3文字
+        } else if (line.match(/（大）$/)) {
+            fontSize = 21;
+            cleanedLine = line.replace(/（大）$/, '');
+            indicatorLength = 3; // 「（大）」は3文字
+        }
+
+        newLinesContent.push(cleanedLine);
+        lineAttributes.push({
+            size: fontSize,
+            originalLineLength: line.length, // 元の行の文字長（サイズ表示含む）
+            cleanedLineLength: cleanedLine.length // 削除後の行の文字長
+        });
+    }
+
+    // 3. サイズ表示を削除した新しいテキストコンテンツをテキストフレームに設定
+    // これにより、textRange.charactersのインデックスが新しい内容に合わせられる
+    textFrame.contents = newLinesContent.join('\n');
+
+    // 4. 新しい内容に基づいて、各文字のフォントサイズを適用
+    var currentCharacterIndexInNewContent = 0; // 新しいcontents内での現在の文字インデックス
+
+    for (var i = 0; i < lineAttributes.length; i++) {
+        var attrs = lineAttributes[i];
+        var fontSize = attrs.size;
+        var cleanedLineLength = attrs.cleanedLineLength;
+
+        // 該当する行の各文字にループを回してフォントサイズを適用する
+        for (var j = 0; j < cleanedLineLength; j++) {
+            var charRange = textFrame.textRange.characters[currentCharacterIndexInNewContent + j];
+            if (charRange) {
+                charRange.characterAttributes.size = fontSize;
+            }
+        }
+
+        // 次の行の開始インデックスを更新
+        // cleanedLineLength は削除後の行の文字長、+1 は改行文字(\n)の分
+        currentCharacterIndexInNewContent += cleanedLineLength + 1;
+    }
+
+    return textFrame.contents;
 }
 
 function convertTextFrameContent(targetTextFrame) {
@@ -174,23 +254,17 @@ function convertTextFrameContent(targetTextFrame) {
     var convertedContent = originalContent;
 
     // 1. 全角英数字を半角に変換
-    // 「！」～「～」までの全角記号、数字、アルファベット、カタカナを対象とする
-    // \uff01-\uff5e は全角文字のUnicode範囲
-    // \u3000 は全角スペース
-    // \u0020 は半角スペース (この後の処理でまとめて対応するためここでは含めない)
     convertedContent = convertedContent.replace(/[Ａ-Ｚａ-ｚ０-９]/g, function (s) {
         return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
     });
-    // 全角の「：」を半角の「:」に変換 (上記正規表現には含まれないため個別指定)
     convertedContent = convertedContent.replace(/：/g, ':');
 
-    // 2. 全角空白と半角空白をすべて半角にする
-    // ここではまず全角スペースを半角スペースに変換
+    // 2. 全角空白を半角にする
     convertedContent = convertedContent.replace(/　/g, ' ');
 
-    // 3. 連続する半角空白を1つにまとめる（オプションだが推奨）
-    // 例: "a   b" -> "a b"
-    convertedContent = convertedContent.replace(/\s+/g, ' ');
+    // 3. 連続する半角空白を1つにまとめる（★ここを変更★）
+    // \s+ を ' +' に変更することで、スペースのみにマッチさせ、改行は対象外にする
+    convertedContent = convertedContent.replace(/ +/g, ' '); // 1つ以上の半角スペースにマッチ
 
     // 変換後の文字列をTextFrameに設定
     targetTextFrame.contents = convertedContent;
