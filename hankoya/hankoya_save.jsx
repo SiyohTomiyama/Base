@@ -1,5 +1,5 @@
 ﻿var PRINT_LAYER = app.activeDocument.layers["印面"];
-var DEST_FOLDER = "~/Downloads/hankoyaData/";
+var DEST_FOLDER = "~/Downloads/hankoya/個別データ/";
 
 function resaveFile(doc, savePath) {
     var option = new IllustratorSaveOptions();
