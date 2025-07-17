@@ -54,16 +54,17 @@ function main() {
 
     for (var i = 0; i < aiFileArray.length; i++) {
         var placedObject = null;
-        var aiText = decodeURI(aiFileArray[i].name);
+        var aiName = decodeURI(aiFileArray[i].name);
+        var aiText = aiName.split('.')[0];
         placedObject = createTextFrame(doc, aiText, currentX, currentY);
         placedObject.move(targetLayer, ElementPlacement.PLACEATBEGINNING);
 
         var itemBottom = placedObject.geometricBounds[3]; // Bottom Y coordinate
         currentY = itemBottom - itemMargin;
 
-        aiName = aiFileArray[i].fullName;
-        pdfPath = aiName.split('.')[0] + ".pdf";
-        placedObject = placeItem(doc, pdfPath, currentX + 30, currentY);
+        var aiFullName = aiFileArray[i].fullName;
+        pdfPath = aiFullName.split('.')[0] + ".pdf";
+        placedObject = placeItem(doc, pdfPath, currentX + 25, currentY);
         placedObject.move(targetLayer, ElementPlacement.PLACEATBEGINNING);
 
         itemBottom = placedObject.geometricBounds[3]; // Bottom Y coordinate
