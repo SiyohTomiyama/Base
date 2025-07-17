@@ -62,7 +62,7 @@ function binMain() {
         if (imageFolder == null) {
             return alert('failed');
         }
-        var imageArray = Folder(String(imageFolder) + "/").getFiles("*.pdf");
+        var imageArray = Folder(String(imageFolder) + "/").getFiles("*_nega.pdf");
         if (imageArray.length == 0) {
             return alert("画像がないよ");
         }
