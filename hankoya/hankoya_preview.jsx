@@ -78,6 +78,18 @@ function main() {
             currentY = -80; // 新しい列の初期Y座標
         }
     }
+
+    //aiを保存
+    var destFolder = "~/Downloads/hankoya/プレビュー用データ/";
+    var currentTime = (new Date).getTime();
+    var aiFileName = currentTime + ".ai";
+    var destAiFile = new File(destFolder + "/" + aiFileName);
+    var option = new IllustratorSaveOptions();
+    option.pdfCompatible = true;
+    option.embedICCProfile = false;
+
+    doc.saveAs(File(destAiFile), option);
+
     app.coordinateSystem = originalCoordinateSystem;
 }
 
