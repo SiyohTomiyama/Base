@@ -773,6 +773,17 @@ function main() {
 
     var doc = app.activeDocument;
 
+    //aiを保存
+    var destFolder = "~/Downloads/hankoya/版下データ/";
+    var currentTime = (new Date).getTime();
+    var aiFileName = currentTime + ".ai";
+    var destAiFile = new File(destFolder + "/" + aiFileName);
+    var option = new IllustratorSaveOptions();
+    option.pdfCompatible = true;
+    option.embedICCProfile = false;
+
+    doc.saveAs(File(destAiFile), option);
+
     // アートボードの座標を取得 (left, top, right, bottom)
     var artboardRect = doc.artboards[0].artboardRect;
     var artboardLeft = artboardRect[0];
@@ -832,9 +843,9 @@ function main() {
     exportOptions.artboardClipping = false;
 
     // ファイル名を生成
-    var destFolder = "~/Downloads/hankoya/個別データ/";
-    var fileName = "版下データ.tif";
-    var destFile = new File(destFolder + "/" + fileName);
+    var tiffFileName = "版下データ" + currentTime + ".tif";
+    var destFile = new File(destFolder + "/" + tiffFileName);
+
     doc.exportFile(destFile, ExportType.TIFF, exportOptions);
     doc.close(SaveOptions.DONOTSAVECHANGES);
     alert("集版してTIFFに保存しました");
