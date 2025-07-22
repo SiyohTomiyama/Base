@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "@google-cloud/functions-framework": "^3.0.0",
-    "googleapis": "^42",
-    "ioredis": "^5"
+    "googleapis": "^42"
   }
 }
