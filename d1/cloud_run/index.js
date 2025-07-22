@@ -7,7 +7,17 @@ const TARGET_SHEET_NAME = "進捗管理表"; // 操作したいシート名
 const KEYS = ["order_date", "submission_count", "check_due_at", "order_number", "first_order_number", "price", "product_category2_name", "product_name", "arrange_group_name", "arrange_group_name2", "template_number", "note"];
 
 functions.http('appendSpreadSheetRow', async (req, res) => {
-    const timestamp = new Date().toISOString(); // ISO 8601形式のタイムスタンプ
+    const today = new Date();
+    const timestamp = today.toISOString(); // ISO 8601形式のタイムスタンプ
+    const jstDate = today.toLocaleString('ja-JP', { // JSTの日付と時刻
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
 
     try {
         // 1. リクエストボディのバリデーション
@@ -53,17 +63,6 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
             });
         }
 
-        const today = new Date();
-        const jstDate = today.toLocaleString('ja-JP', {
-            timeZone: 'Asia/Tokyo',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
-
         // JWTクライアントの取得
         const jwt = getJwt();
         if (!jwt) {
@@ -93,7 +92,7 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
         }
 
         // 最初のセルは日付で埋める
-        dataToWrite[0] = jstDate;
+        dataToWrite[0] = jstDate; // 取得済みのjstDateを使用
 
         // データが存在する最初の空白行を見つける (appendメソッドが自動で処理)
         const appendRange = `${TARGET_SHEET_NAME}!A1`;
@@ -107,9 +106,9 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
 
             const updatedRange = appendResult.data.updates.updatedRange;
             const rowNumMatch = updatedRange.match(/(\d+)/);
-            let updatedColumnNumber = 0; // デフォルト値
+            let updatedColumnNumber = 0;
             if (rowNumMatch && rowNumMatch[0]) {
-                updatedColumnNumber = parseInt(rowNumMatch[0]);
+                updatedColumnNumber = parseInt(rowNumMatch[0]); // ここで一度だけ抽出
             }
 
             return res.status(200).json({
@@ -223,9 +222,9 @@ async function appendSheetRowAsync(jwt, spreadsheetId, range, row) {
 
     // 2. 追記された行のA列の書式を「日付」に設定
     const updatedRange = appendResult.data.updates.updatedRange; // 例: "進捗管理表!A10:L10"
+    let startRowNumber;
     if (updatedRange) {
         const rowNumMatch = updatedRange.match(/(\d+)/); // 最初の数字の並びを取得
-        let startRowNumber;
         if (rowNumMatch && rowNumMatch[0]) {
             startRowNumber = parseInt(rowNumMatch[0]); // match[0]はマッチ全体（例: "10"）
         } else {
