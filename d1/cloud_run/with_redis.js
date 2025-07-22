@@ -31,11 +31,31 @@ const KEYS = ["order_date", "submission_count", "check_due_at", "order_number", 
 const LOCK_EXPIRATION_SECONDS = 5;
 
 functions.http('appendSpreadSheetRow', async (req, res) => {
+    const today = new Date();
+    const timestamp = today.toISOString(); // ISO 8601形式のタイムスタンプ
+    const jstDate = today.toLocaleString('ja-JP', { // JSTの日付と時刻
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+
     try {
         // リクエストボディのバリデーション
         if (!req.rawBody) {
             console.error("Error: リクエストボディが空です。");
-            return res.status(400).send('Bad Request: リクエストボディが空です。');
+            return res.status(400).json({
+                status: "error",
+                error: {
+                    code: 400,
+                    type: "BadRequest",
+                    message: "リクエストボディが空です。"
+                },
+                timestamp: timestamp
+            });
         }
 
         let parsedBody;
@@ -44,7 +64,15 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
             console.log("Received raw body:", parsedBody);
         } catch (jsonError) {
             console.error("Error: リクエストボディのJSONパースに失敗しました。", jsonError);
-            return res.status(400).send(`Bad Request: リクエストボディが不正です。詳細: ${jsonError.message}`);
+            return res.status(400).json({
+                status: "error",
+                error: {
+                    code: 400,
+                    type: "BadRequest",
+                    message: `リクエストボディが不正です。詳細: ${jsonError.message}`
+                },
+                timestamp: timestamp
+            });
         }
         // Redisによるレートリミットのロジック
         // スプレッドシートIDごとにユニークなロックキーを生成
@@ -72,25 +100,30 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
         // ----------------------------------------------------
         if (typeof parsedBody !== 'object' || parsedBody === null) {
             console.error("Error: パースされたリクエストボディはJSONオブジェクトでなければなりません。");
-            return res.status(400).send('Bad Request: リクエストボディが不正です。');
+            return res.status(400).json({
+                status: "error",
+                error: {
+                    code: 400,
+                    type: "BadRequest",
+                    message: "リクエストボディが不正です。"
+                },
+                timestamp: timestamp
+            });
         }
-
-        const today = new Date();
-        const jstDate = today.toLocaleString('ja-JP', {
-            timeZone: 'Asia/Tokyo',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
 
         // JWTクライアントの取得
         const jwt = getJwt();
         if (!jwt) {
             // getJwt内でエラーが発生した場合、すでにコンソールにエラーが出力されているはず
-            return res.status(401).send('Internal Server Error: 認証クライアントの初期化に失敗しました。');
+            return res.status(500).json({
+                status: "error",
+                error: {
+                    code: 500,
+                    type: "InternalServerError",
+                    message: "認証クライアントの初期化に失敗しました。"
+                },
+                timestamp: timestamp
+            });
         }
 
         // req.body のキーとキー行を比較し、書き込むデータと未発見キーを準備
@@ -107,7 +140,7 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
         }
 
         // 最初のセルは日付で埋める
-        dataToWrite[0] = jstDate;
+        dataToWrite[0] = jstDate; // 取得済みのjstDateを使用
 
         // データが存在する最初の空白行を見つける (appendメソッドが自動で処理)
         const appendRange = `${TARGET_SHEET_NAME}!A1`;
@@ -118,29 +151,73 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
         // スプレッドシートAPIからの成功レスポンスを検証
         if (appendResult && appendResult.data && appendResult.data.updates && appendResult.data.updates.updatedRange) {
             console.log(`スプレッドシートに正常に書き込みました。更新範囲: ${appendResult.data.updates.updatedRange}`);
-            return res.status(200).send(`OK`);
+
+            const updatedRange = appendResult.data.updates.updatedRange;
+            const rowNumMatch = updatedRange.match(/(\d+)/);
+            let updatedColumnNumber = 0;
+            if (rowNumMatch && rowNumMatch[0]) {
+                updatedColumnNumber = parseInt(rowNumMatch[0]); // ここで一度だけ抽出
+            }
+
+            return res.status(200).json({
+                status: "success",
+                data: {
+                    message: "スプレッドシートに正常に書き込みました。",
+                    updated_column_number: updatedColumnNumber
+                },
+                timestamp: timestamp
+            });
         } else {
             // APIからのレスポンスが期待通りでない場合
             console.error("Error: スプレッドシートAPIからのレスポンスが不完全または予期しない形式でした。", appendResult);
-            return res.status(500).send("Internal Server Error: スプレッドシートへの書き込みは成功しましたが、APIレスポンスの検証に失敗しました。");
+            return res.status(500).json({
+                status: "error",
+                error: {
+                    code: 500,
+                    type: "InternalServerError",
+                    message: "スプレッドシートへの書き込みは成功しましたが、APIレスポンスの検証に失敗しました。"
+                },
+                timestamp: timestamp
+            });
         }
 
     } catch (error) {
         console.error("Error in appendSpreadSheetRow (main function):", error);
-        // エラーの種類に応じて適切なステータスコードを返す
-        if (error.code === 401) { // 認証エラー
-            return res.status(401).send(`Unauthorized: 認証エラーが発生しました。詳細: ${error.message}`);
-        } else if (error.code === 403) { // 権限エラー (スプレッドシートへのアクセス権限がない、または保護されたセルへの書き込み)
-            return res.status(403).send(`Forbidden: スプレッドシートへのアクセス権限がありません。詳細: ${error.message}`);
+        let statusCode = 500;
+        let errorType = "InternalServerError";
+        let errorMessage = `予期せぬエラーが発生しました。詳細: ${error.message || error.toString()}`;
+
+        if (error.code === 401) {
+            statusCode = 401;
+            errorType = "Unauthorized";
+            errorMessage = `認証エラーが発生しました。詳細: ${error.message}`;
+        } else if (error.code === 403) {
+            statusCode = 403;
+            errorType = "Forbidden";
+            errorMessage = `スプレッドシートへのアクセス権限がありません。詳細: ${error.message}`;
         } else if (error.message && error.message.includes('You are trying to edit a protected cell or object')) {
-            return res.status(403).send(`Forbidden: 保護されたセルへの書き込み権限がありません。詳細: ${error.message}`);
+            statusCode = 403;
+            errorType = "Forbidden";
+            errorMessage = `保護されたセルへの書き込み権限がありません。詳細: ${error.message}`;
         } else if (error.message && error.message.includes('Unable to parse range') && error.message.includes(TARGET_SHEET_NAME)) {
-            return res.status(404).send(`Not Found: 指定されたシート名 '${TARGET_SHEET_NAME}' が見つかりません。詳細: ${error.message}`);
+            statusCode = 404;
+            errorType = "NotFound";
+            errorMessage = `指定されたシート名 '${TARGET_SHEET_NAME}' が見つかりません。詳細: ${error.message}`;
         } else if (error.message && error.message.includes('Requested entity was not found')) {
-            return res.status(404).send(`Not Found: 指定されたスプレッドシート (ID: ${SHEET_ID}) が見つかりません。詳細: ${error.message}`);
-        } else {
-            return res.status(500).send(`Internal Server Error: 予期せぬエラーが発生しました。詳細: ${error.message || error.toString()}`);
+            statusCode = 404;
+            errorType = "NotFound";
+            errorMessage = `指定されたスプレッドシート (ID: ${SHEET_ID}) が見つかりません。詳細: ${error.message}`;
         }
+
+        return res.status(statusCode).json({
+            status: "error",
+            error: {
+                code: statusCode,
+                type: errorType,
+                message: errorMessage
+            },
+            timestamp: timestamp
+        });
     }
 }, { rawBody: true });
 
@@ -192,16 +269,15 @@ async function appendSheetRowAsync(jwt, spreadsheetId, range, row) {
     });
 
     // 2. 追記された行のA列の書式を「日付」に設定
-    const updatedRange = appendResult.data.updates.updatedRange; // appendの返り値 例: "進捗管理表!A10:L10"
+    const updatedRange = appendResult.data.updates.updatedRange; // 例: "進捗管理表!A10:L10"
+    let startRowNumber;
     if (updatedRange) {
         const rowNumMatch = updatedRange.match(/(\d+)/); // 最初の数字の並びを取得
-        let startRowNumber;
         if (rowNumMatch && rowNumMatch[0]) {
             startRowNumber = parseInt(rowNumMatch[0]); // match[0]はマッチ全体（例: "10"）
         } else {
             console.warn(`Could not extract row number from updatedRange: ${updatedRange}. Skipping format.`);
             return appendResult;
-            // 書き込みはできたけれどその後に失敗というメッセージを後で出す
         }
 
         // シートIDを取得
@@ -211,9 +287,9 @@ async function appendSheetRowAsync(jwt, spreadsheetId, range, row) {
                 "repeatCell": {
                     "range": {
                         "sheetId": sheetId, // シートIDを使用
-                        "startRowIndex": startRowNumber - 1, //追記した行
-                        "endRowIndex": startRowNumber,      //追記した行のみを対象とする
-                        "startColumnIndex": 0,             // A列
+                        "startRowIndex": startRowNumber - 1,
+                        "endRowIndex": startRowNumber,     // 追記した1行のみを対象にするため、startRowIndex + 1 (0ベース)
+                        "startColumnIndex": 0,             // A列は0
                         "endColumnIndex": 1                // A列のみなので1
                     },
                     "cell": {
