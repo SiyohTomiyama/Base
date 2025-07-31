@@ -1,0 +1,196 @@
+function mainScript() {
+	var n = activeDocument.selection.length;
+
+	if (n <= 1) {
+		alert("テキストとカットラインを選択してからスクリプトを実行してね！");
+	} else if (n == 2) {
+
+		var arr = CheckObject(n);
+		Size_Adjust(arr[0], arr[1], arr[2], arr[3], arr[4]);
+	} else {
+		alert("1組のテキストと枠のみを選択たら動くよ。(＾＾)/");
+	}
+}
+
+//---------------------------------------------------------
+
+function CheckObject(n) {
+
+	//アートボードの座標初期化
+	app.coordinateSystem = CoordinateSystem.ARTBOARDCOORDINATESYSTEM;
+
+	var Object_Item;
+	var Text_Item;
+
+	for (var i = 0; i < n; i++) {
+		object = activeDocument.selection[i];
+
+		if (object.typename !== "TextFrame") {
+			Object_Item = object;
+			//選択した対象がテキスト以外の処理
+			//バウンディングボックスの取得(X,Y,X2,Y2)
+			var bounds = object.geometricBounds;
+			var Object_X2 = Math.round(bounds[2]);//オブジェクトのお尻のX座標
+			var Object_Y2 = Math.round(bounds[3]);//オブジェクトのお尻のY座標
+		} else {
+			Text_Item = activeDocument.selection[i];
+			//選択した対象がテキストの処理
+			var Text_muki = app.selection[i].orientation;//縦書き・横書きのチェック
+
+			//テキストのスタイル初期化
+			var txtRange2 = activeDocument.selection[i].textRange;
+			txtRange2.scaling = [1, 1];//長体・平体の解除
+			txtRange2.tracking = 0; //トラッキングを0
+		}
+	}
+
+	return [Object_X2, Object_Y2, Text_muki, Object_Item, Text_Item];
+}
+
+//---------------------------------------------------------
+
+//文字調整
+
+function Size_Adjust(Object_X2, Object_Y2, Text_muki, Object_Item, Text_Item) {
+
+	for (var m = 0; m < 99999; m++) {
+
+		var objBounds = getTheBounds(Object_Item);
+		var textBounds = getTextItemBounds(Text_Item);
+		Text_Item.translate(objBounds[0] - textBounds[0], objBounds[1] - textBounds[1]);
+
+		var txtRange = Text_Item;
+		var txtRange2 = Text_Item.textRange;
+
+		if (m == 0) {
+			var Org_Size = txtRange2.size;
+		}
+
+		var chara = txtRange.characters.length;//テキストの文字数
+
+		var targetChar = txtRange.characters[chara - 1];
+
+		var bounds = txtRange.geometricBounds;
+
+		if (Text_muki == TextOrientation.HORIZONTAL) {
+			var Object = Object_X2;//オブジェクトお尻のx座標
+			var Text = Math.round(bounds[2]);//テキストお尻のX座標
+		}
+		else {
+			var Object = -Object_Y2;//オブジェクトお尻のY座標
+			var Text = -Math.round(bounds[3]);//テキストお尻のY座標
+		}
+
+		if (Text > Object && txtRange2.tracking == 0) {
+			if (m <= 50) {//長体処理
+				if (Text_muki == TextOrientation.HORIZONTAL) {
+					txtRange2.scaling = [1 - 0.01 * m, 1];
+				}
+				else {
+					txtRange2.scaling = [1, 1 - 0.01 * m];
+				}
+			}
+			else {//長体50％未満になる場合には、フォントサイズを一つ小さくする。
+				if (txtRange2.size >= 10) {
+					size = txtRange2.size - 1;
+					txtRange2.size -= 1;
+					var ReSize = 1;
+				}
+				else if (txtRange2.size == 9) {//長体が50％未満になり、文字もこれ以上小さくできない場合
+					alert('テキストが9ptでも長体/平体が50％未満になります。木台サイズの大きい物で提案してください。');
+					ReSize = 0;
+					break;
+				}
+			}
+		}
+		else if (Text < Object) {//トラッキング処理
+			txtRange2.tracking += 10;
+			targetChar.tracking = 0;
+		}
+		else {
+			break;
+		}
+	}
+	if (ReSize == 1) {
+		alert('長体/平体が50％未満になります。文字サイズを' + Org_Size + 'ptから' + size + 'ptに小さくしました。');
+	}
+}
+
+// Get the bounds from target
+function getTheBounds(item) {
+	var bounds = item.geometricBounds;
+	if (item.typename === 'TextFrame') {
+		bounds = getTextItemBounds(item);
+	} else if (item.typename === 'GroupItem') {
+		bounds = item.clipped ? getClippingPath(item.pageItems).geometricBounds : getMaxBounds(item.pageItems);
+	} else if (item.typename === 'Artboard') {
+		bounds = item.artboardRect;
+	}
+	return bounds;
+}
+
+// Get the max bounds from objects
+function getMaxBounds(items) {
+	var boundsArray = [[], [], [], []];
+	for (var i = 0; i < items.length; i++) {
+		var bounds = getTheBounds(items[i]);
+		for (var j = 0; j < bounds.length; j++) {
+			boundsArray[j].push(bounds[j]);
+		}
+	}
+	return [Math.min.apply(null, boundsArray[0]), Math.max.apply(null, boundsArray[1]), Math.max.apply(null, boundsArray[2]), Math.min.apply(null, boundsArray[3])];
+}
+
+// Get the bounds from TextFrame
+function getTextItemBounds(item) {
+	if (item.orientation == TextOrientation.VERTICAL) return item.geometricBounds;
+
+	var trackings = [];
+	var charaAttrs = [];
+	var dummyItem = item.duplicate();
+
+	for (var j = 0; j < dummyItem.lines.length; j++) {
+		charaAttrs[j] = dummyItem.lines[j].characters[dummyItem.lines[j].characters.length - 1].characterAttributes;
+		trackings[j] = charaAttrs[j].tracking;
+		var dummyColor = new NoColor();
+		if (charaAttrs[j].fillColor.typename == 'NoColor') dummyColor = new RGBColor();
+		charaAttrs[j].fillColor = dummyColor;
+		charaAttrs[j].tracking = 0;
+	}
+
+	var charaAttr = getMaxCharacter(dummyItem.lines[dummyItem.lines.length - 1].characters);
+	var heightGap = getTextHeight(charaAttr) - Math.max.apply(null, charaAttr.totalSize);
+	var bounds = [dummyItem.geometricBounds[0], dummyItem.geometricBounds[1], dummyItem.geometricBounds[2], dummyItem.geometricBounds[3] + heightGap];
+	dummyItem.remove();
+	return bounds;
+}
+
+// Get max size form character
+function getMaxCharacter(chara) {
+	var ca = { 'size': [], 'baselineShift': [], 'textFont': [], 'horizontaltalScale': [], 'verticalScale': [], 'totalSize': [] };
+	for (var i = 0; i < chara.length; i++) {
+		ca.size.push(chara[i].characterAttributes.size);
+		ca.baselineShift.push(chara[i].characterAttributes.baselineShift);
+		ca.textFont.push(chara[i].characterAttributes.textFont);
+		ca.horizontaltalScale.push(chara[i].characterAttributes.horizontaltalScale);
+		ca.verticalScale.push(chara[i].characterAttributes.verticalScale);
+		ca.totalSize.push(chara[i].characterAttributes.size * chara[i].characterAttributes.verticalScale / 100);
+	}
+	return ca;
+}
+
+// Get the height form character
+function getTextHeight(charaAttr) {
+	var doc = app.activeDocument;
+	var wlay = doc.layers["印面"];
+	var activeLayer = doc.activeLayer;
+	var tf = wlay.textFrames.add();
+	tf.name = "_temp_textframe_";
+	tf.contents = "D";
+	tf.textRange.characterAttributes.size = Math.max.apply(null, charaAttr.totalSize);
+	tf.textRange.characterAttributes.textFont = charaAttr.textFont[0];
+	var tempHeight = (-tf.geometricBounds[3] + tf.geometricBounds[1]);
+	tf.remove();
+	doc.activeLayer = activeLayer;
+	return tempHeight;
+}
