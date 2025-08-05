@@ -105,17 +105,9 @@ function Size_Adjust(arr) {
 					txtRange.scaling = [1, 1 - 0.01 * m];
 				}
 			} else {//長体50％未満になる場合には、フォントサイズを一つ小さくする。
-				if (txtRange.size >= 10) {
+				if (txtRange.size > MIN_FONT_SIZE_PT) {
 					txtRange.size--;
 					ReSize = true;
-				if (txtRange.size >= MIN_FONT_SIZE_PT + 1) {
-					txtRange.size--;
-					ReSize = true;
-				} else if (txtRange.size == 9) {//長体が50％未満になり、文字もこれ以上小さくできない場合
-				} else if (txtRange.size == MIN_FONT_SIZE_PT) {//長体が50％未満になり、文字もこれ以上小さくできない場合
-					alert('テキストが' + MIN_FONT_SIZE_PT + 'ptでも長体/平体が50％未満になります。木台サイズの大きい物で提案してください。');
-				} else if (txtRange.size == MIN_FONT_SIZE_PT) {//長体が50％未満になり、文字もこれ以上小さくできない場合
-					alert('テキストが' + MIN_FONT_SIZE_PT + 'ptでも長体/平体が50％未満になります。木台サイズの大きい物で提案してください。');
 				} else if (txtRange.size == MIN_FONT_SIZE_PT) {//長体が50％未満になり、文字もこれ以上小さくできない場合
 					alert('テキストが' + MIN_FONT_SIZE_PT + 'ptでも長体/平体が50％未満になります。木台サイズの大きい物で提案してください。');
 					break;
@@ -127,8 +119,6 @@ function Size_Adjust(arr) {
 		} else if (txtPosition > objPosition - FRAME_MARGIN * 1.1) {
 			break;
 		} else {//テキスト幅が枠より狭い時はトラッキングで広げる
-			txtRange.tracking += 10;
-			txtRange.tracking += TRACKING_INCREMENT;
 			txtRange.tracking += TRACKING_INCREMENT;
 			lastChar.tracking = 0;
 			if (txtPosition > objPosition - FRAME_MARGIN * 1.1) {
