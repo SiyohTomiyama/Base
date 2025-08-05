@@ -120,6 +120,7 @@ function Size_Adjust(arr) {
 			break;
 		} else {//テキスト幅が枠より狭い時はトラッキングで広げる
 			txtRange.tracking += 10;
+			txtRange.tracking += TRACKING_INCREMENT;
 			lastChar.tracking = 0;
 			if (txtPosition > objPosition - FRAME_MARGIN * 1.1) {
 				break;
