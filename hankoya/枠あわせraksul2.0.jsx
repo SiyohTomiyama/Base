@@ -290,6 +290,14 @@ function alignObjects(n) {
 			ca.horizontaltalScale.push(charLength[i].characterAttributes.horizontaltalScale);
 			ca.verticalScale.push(charLength[i].characterAttributes.verticalScale);
 			ca.totalSize.push(charLength[i].characterAttributes.size * charLength[i].characterAttributes.verticalScale / 100);
+		var ca = { 'size': [], 'baselineShift': [], 'textFont': [], 'horizontalScale': [], 'verticalScale': [], 'totalSize': [] };
+		for (var i = 0; i < charLength.length; i++) {
+			ca.size.push(charLength[i].characterAttributes.size);
+			ca.baselineShift.push(charLength[i].characterAttributes.baselineShift);
+			ca.textFont.push(charLength[i].characterAttributes.textFont);
+			ca.horizontalScale.push(charLength[i].characterAttributes.horizontalScale);
+			ca.verticalScale.push(charLength[i].characterAttributes.verticalScale);
+			ca.totalSize.push(charLength[i].characterAttributes.size * charLength[i].characterAttributes.verticalScale / 100);
 		}
 		return ca;
 	}
