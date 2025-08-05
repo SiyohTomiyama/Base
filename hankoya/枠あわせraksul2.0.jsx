@@ -15,6 +15,9 @@ JavaScript for Illustrator
 
 var ASPECT_RATIO_LIMIT = 50; //100 - ASPECT_RATIO_LIMITまで幅を調節する
 var FRAME_MARGIN = 1; //枠内に少しだけ余裕を持って入るようにするための数値
+var MAX_ADJUSTMENT_ITERATIONS = 99999; //最大試行回数
+var MIN_FONT_SIZE_PT = 9; //最小フォントサイズ
+var TRACKING_INCREMENT = 10; //一度のトラッキングで広げる値
 
 main();
 
@@ -86,7 +89,6 @@ function Size_Adjust(arr) {
 	var lastChar = txtObj.characters[charLength - 1]; //最後の文字
 	var ReSize = false; //フォントサイズを下げたかどうか
 
-	for (var m = 0; m < 99999; m++) {
 	for (var m = 0; m < MAX_ADJUSTMENT_ITERATIONS; m++) {
 		var bounds = txtObj.geometricBounds;
 		if (txtOrientation == TextOrientation.HORIZONTAL) {
@@ -282,14 +284,6 @@ function alignObjects(n) {
 
 	// Get max size form character
 	function getMaxCharacter(charLength) {
-		var ca = { 'size': [], 'baselineShift': [], 'textFont': [], 'horizontaltalScale': [], 'verticalScale': [], 'totalSize': [] };
-		for (var i = 0; i < charLength.length; i++) {
-			ca.size.push(charLength[i].characterAttributes.size);
-			ca.baselineShift.push(charLength[i].characterAttributes.baselineShift);
-			ca.textFont.push(charLength[i].characterAttributes.textFont);
-			ca.horizontaltalScale.push(charLength[i].characterAttributes.horizontaltalScale);
-			ca.verticalScale.push(charLength[i].characterAttributes.verticalScale);
-			ca.totalSize.push(charLength[i].characterAttributes.size * charLength[i].characterAttributes.verticalScale / 100);
 		var ca = { 'size': [], 'baselineShift': [], 'textFont': [], 'horizontalScale': [], 'verticalScale': [], 'totalSize': [] };
 		for (var i = 0; i < charLength.length; i++) {
 			ca.size.push(charLength[i].characterAttributes.size);
