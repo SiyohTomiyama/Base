@@ -87,6 +87,7 @@ function Size_Adjust(arr) {
 	var ReSize = false; //フォントサイズを下げたかどうか
 
 	for (var m = 0; m < 99999; m++) {
+	for (var m = 0; m < MAX_ADJUSTMENT_ITERATIONS; m++) {
 		var bounds = txtObj.geometricBounds;
 		if (txtOrientation == TextOrientation.HORIZONTAL) {
 			var txtPosition = Math.round(bounds[2]);//テキストお尻のX座標
