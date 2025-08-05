@@ -108,6 +108,9 @@ function Size_Adjust(arr) {
 				if (txtRange.size >= 10) {
 					txtRange.size--;
 					ReSize = true;
+				if (txtRange.size >= MIN_FONT_SIZE_PT + 1) {
+					txtRange.size--;
+					ReSize = true;
 				} else if (txtRange.size == 9) {//長体が50％未満になり、文字もこれ以上小さくできない場合
 				} else if (txtRange.size == MIN_FONT_SIZE_PT) {//長体が50％未満になり、文字もこれ以上小さくできない場合
 					alert('テキストが' + MIN_FONT_SIZE_PT + 'ptでも長体/平体が50％未満になります。木台サイズの大きい物で提案してください。');
