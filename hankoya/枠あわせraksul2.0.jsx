@@ -13,9 +13,13 @@ JavaScript for Illustrator
 
 // ver2.00 徹底改造
 
-var ASPECT_RATIO_LIMIT = 50; //100 - ASPECT_RATIO_LIMITまで幅を調節する
+var ASPECT_RATIO_LIMIT = 50; //長体・平体を1%ずつ減らしていく際の回数制限
 var FRAME_MARGIN = 1; //枠内に少しだけ余裕を持って入るようにするための数値
-var MAX_ADJUSTMENT_ITERATIONS = 99999; //最大試行回数
+var MAX_ADJUSTMENT_ITERATIONS = 1000;
+// 最大試行回数
+// テキストが長い場合50回の試行で50%の長体・平体になるので、その後の試行回数は現在のフォントサイズを9ptにするまで
+// テキストが短い場合は、当初がどれだけアンバランスだったかによって、500回以上の試行も考えられる
+// 1000というのは、これくらいあればきっと大丈夫だろうという数値
 var MIN_FONT_SIZE_PT = 9; //最小フォントサイズ
 var TRACKING_INCREMENT = 10; //一度のトラッキングで広げる値
 
@@ -100,7 +104,7 @@ function Size_Adjust(arr) {
 		if (txtPosition > objPosition) {//テキストが枠より大きい
 			if (m <= ASPECT_RATIO_LIMIT) {//長体処理 半分の幅まで許容する
 				if (txtOrientation == TextOrientation.HORIZONTAL) {
-					txtRange.scaling = [1 - 0.01 * m, 1];
+					txtRange.scaling = [1 - 0.01 * m, 1]; //1%ずつ縮めている
 				} else {
 					txtRange.scaling = [1, 1 - 0.01 * m];
 				}
