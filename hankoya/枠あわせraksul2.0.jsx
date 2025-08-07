@@ -44,7 +44,7 @@ function main() {
 	var originalCoordinateSystem = app.coordinateSystem;
 	app.coordinateSystem = CoordinateSystem.ARTBOARDCOORDINATESYSTEM;
 	Size_Adjust(prepareObjects());
-	alignObjects(1);
+	alignObjects("center", "center");
 	app.coordinateSystem = originalCoordinateSystem;
 }
 
@@ -67,9 +67,9 @@ function prepareObjects() {
 
 	//枠の位置に合わせてテキストを移動する
 	if (Text_Item.orientation == TextOrientation.HORIZONTAL) {//横書き
-		alignObjects(0);
+		alignObjects("left", "center");
 	} else {//縦書き
-		alignObjects(2);
+		alignObjects("center", "top");
 	}
 	return [Object_X2, Object_Y3, Text_Item.orientation];
 }
@@ -137,31 +137,85 @@ function Size_Adjust(arr) {
 }
 
 //オブジェクトの位置をキーオブジェクトに揃える
-function alignObjects(n) {
+function alignObjects(horz, vert) {
 
 	// Settings
-	switch (n) {
-		case 0:
-			var settings = {//横書き（左右：左合わせ・天地：中央）
-				'horizontal': 0,
-				'vertical': 1
-			};
+	switch (horz) {
+		case "left":
+			switch (vert) {
+				case "top":
+					var settings = {
+						'horizontal': 0,
+						'vertical': 0
+					};
+					break;
+				case "center":
+					var settings = {//横書き用
+						'horizontal': 0,
+						'vertical': 1
+					};
+					break;
+				case "bottom":
+					var settings = {
+						'horizontal': 0,
+						'vertical': 2
+					};
+					break;
+				default:
+					break;
+			}
 			break;
-		case 1:
-			var settings = {//（左右：中央、左右：中央）
-				'horizontal': 1,
-				'vertical': 1
-			};
+		case "center":
+			switch (vert) {
+				case "top":
+					var settings = { //縦書き用
+						'horizontal': 1,
+						'vertical': 0
+					};
+					break;
+				case "center":
+					var settings = {//完全中央合わせ
+						'horizontal': 1,
+						'vertical': 1
+					};
+					break;
+				case "bottom":
+					var settings = {
+						'horizontal': 1,
+						'vertical': 2
+					};
+					break;
+				default:
+					break;
+			}
 			break;
-		case 2:
-			var settings = {//縦書き（左右：中央、天地：上合わせ）
-				'horizontal': 1,
-				'vertical': 0
-			};
+		case "right":
+			switch (vert) {
+				case "top":
+					var settings = {
+						'horizontal': 2,
+						'vertical': 0
+					};
+					break;
+				case "center":
+					var settings = {
+						'horizontal': 2,
+						'vertical': 1
+					};
+					break;
+				case "bottom":
+					var settings = {
+						'horizontal': 2,
+						'vertical': 2
+					};
+					break;
+				default:
+					break;
+			}
+			break;
+		default:
+			break;
 	}
-
-	// 'vertical'    -> 水平方向［-1:移動なし｜0:左｜1:中央｜2:右］
-	// 'horizontal'  -> 垂直方向［-1:移動なし｜0:上｜1:中段｜2:下］
 
 	// Document and selection
 	var doc = app.activeDocument;
