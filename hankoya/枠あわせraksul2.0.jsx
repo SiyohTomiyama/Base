@@ -13,9 +13,13 @@ JavaScript for Illustrator
 
 // ver2.00 徹底改造
 
-var ASPECT_RATIO_LIMIT = 50; //100 - ASPECT_RATIO_LIMITまで幅を調節する
+var ASPECT_RATIO_LIMIT = 50; //長体・平体を1%ずつ減らしていく際の回数制限
 var FRAME_MARGIN = 1; //枠内に少しだけ余裕を持って入るようにするための数値
-var MAX_ADJUSTMENT_ITERATIONS = 99999; //最大試行回数
+var MAX_ADJUSTMENT_ITERATIONS = 1000;
+// 最大試行回数
+// テキストが長い場合50回の試行で50%の長体・平体になるので、その後の試行回数は現在のフォントサイズを9ptにするまで
+// テキストが短い場合は、当初がどれだけアンバランスだったかによって、500回以上の試行も考えられる
+// 1000というのは、これくらいあればきっと大丈夫だろうという数値
 var MIN_FONT_SIZE_PT = 9; //最小フォントサイズ
 var TRACKING_INCREMENT = 10; //一度のトラッキングで広げる値
 
@@ -40,7 +44,7 @@ function main() {
 	var originalCoordinateSystem = app.coordinateSystem;
 	app.coordinateSystem = CoordinateSystem.ARTBOARDCOORDINATESYSTEM;
 	Size_Adjust(prepareObjects());
-	alignObjects(1);
+	alignObjects("center", "center");
 	app.coordinateSystem = originalCoordinateSystem;
 }
 
@@ -63,9 +67,9 @@ function prepareObjects() {
 
 	//枠の位置に合わせてテキストを移動する
 	if (Text_Item.orientation == TextOrientation.HORIZONTAL) {//横書き
-		alignObjects(0);
+		alignObjects("left", "center");
 	} else {//縦書き
-		alignObjects(2);
+		alignObjects("center", "top");
 	}
 	return [Object_X2, Object_Y3, Text_Item.orientation];
 }
@@ -100,7 +104,7 @@ function Size_Adjust(arr) {
 		if (txtPosition > objPosition) {//テキストが枠より大きい
 			if (m <= ASPECT_RATIO_LIMIT) {//長体処理 半分の幅まで許容する
 				if (txtOrientation == TextOrientation.HORIZONTAL) {
-					txtRange.scaling = [1 - 0.01 * m, 1];
+					txtRange.scaling = [1 - 0.01 * m, 1]; //1%ずつ縮めている
 				} else {
 					txtRange.scaling = [1, 1 - 0.01 * m];
 				}
@@ -133,31 +137,89 @@ function Size_Adjust(arr) {
 }
 
 //オブジェクトの位置をキーオブジェクトに揃える
-function alignObjects(n) {
+function alignObjects(horz, vert) {
 
 	// Settings
-	switch (n) {
-		case 0:
-			var settings = {//横書き（左右：左合わせ・天地：中央）
-				'horizontal': 0,
-				'vertical': 1
-			};
+	switch (horz) {
+		case "left":
+			switch (vert) {
+				case "top":
+					var settings = {
+						'horizontal': 0,
+						'vertical': 0
+					};
+					break;
+				case "center":
+					var settings = {//横書き用
+						'horizontal': 0,
+						'vertical': 1
+					};
+					break;
+				case "bottom":
+					var settings = {
+						'horizontal': 0,
+						'vertical': 2
+					};
+					break;
+				default:
+					alert("無効な垂直位置指定: " + vert);
+					return;
+			}
 			break;
-		case 1:
-			var settings = {//（左右：中央、左右：中央）
-				'horizontal': 1,
-				'vertical': 1
-			};
+		case "center":
+			switch (vert) {
+				case "top":
+					var settings = { //縦書き用
+						'horizontal': 1,
+						'vertical': 0
+					};
+					break;
+				case "center":
+					var settings = {//完全中央合わせ
+						'horizontal': 1,
+						'vertical': 1
+					};
+					break;
+				case "bottom":
+					var settings = {
+						'horizontal': 1,
+						'vertical': 2
+					};
+					break;
+				default:
+					alert("無効な垂直位置指定: " + vert);
+					return;
+			}
 			break;
-		case 2:
-			var settings = {//縦書き（左右：中央、天地：上合わせ）
-				'horizontal': 1,
-				'vertical': 0
-			};
+		case "right":
+			switch (vert) {
+				case "top":
+					var settings = {
+						'horizontal': 2,
+						'vertical': 0
+					};
+					break;
+				case "center":
+					var settings = {
+						'horizontal': 2,
+						'vertical': 1
+					};
+					break;
+				case "bottom":
+					var settings = {
+						'horizontal': 2,
+						'vertical': 2
+					};
+					break;
+				default:
+					alert("無効な垂直位置指定: " + vert);
+					return;
+			}
+			break;
+		default:
+			alert("無効な水平位置指定: " + horz);
+			return;
 	}
-
-	// 'vertical'    -> 水平方向［-1:移動なし｜0:左｜1:中央｜2:右］
-	// 'horizontal'  -> 垂直方向［-1:移動なし｜0:上｜1:中段｜2:下］
 
 	// Document and selection
 	var doc = app.activeDocument;
