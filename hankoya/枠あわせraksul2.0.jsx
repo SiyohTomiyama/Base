@@ -162,7 +162,8 @@ function alignObjects(horz, vert) {
 					};
 					break;
 				default:
-					break;
+					alert("無効な垂直位置指定: " + vert);
+					return;
 			}
 			break;
 		case "center":
@@ -186,7 +187,8 @@ function alignObjects(horz, vert) {
 					};
 					break;
 				default:
-					break;
+					alert("無効な垂直位置指定: " + vert);
+					return;
 			}
 			break;
 		case "right":
@@ -210,11 +212,13 @@ function alignObjects(horz, vert) {
 					};
 					break;
 				default:
-					break;
+					alert("無効な垂直位置指定: " + vert);
+					return;
 			}
 			break;
 		default:
-			break;
+			alert("無効な水平位置指定: " + horz);
+			return;
 	}
 
 	// Document and selection
