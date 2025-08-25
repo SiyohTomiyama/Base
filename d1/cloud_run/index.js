@@ -106,14 +106,30 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
             if (result === null) {
                 // ロックを取得できなかった場合（他のリクエストが既にロックを取得している）
                 console.warn(`Concurrent or too frequent request detected for sheet ${SHEET_ID}. Rejecting.`);
-                return res.status(429).send(`Too many requests. Please wait ${LOCK_EXPIRATION_SECONDS} seconds before trying again.`);
+                return res.status(429).json({
+                    status: "error",
+                    error: {
+                        code: 429,
+                        type: "TooManyRequests",
+                        message: `Too many requests. Please wait ${LOCK_EXPIRATION_SECONDS} seconds before trying again.`
+                    },
+                    timestamp: timestamp
+                });
             }
             // ロックを取得できた場合、処理を続行
             console.log(`Lock acquired for sheet ${SHEET_ID}.`);
         } catch (redisError) {
             console.error("Error acquiring Redis lock:", redisError);
             // Redisとの通信エラーが発生した場合も、サーバーエラーとして返す
-            return res.status(500).send(`Internal Server Error: Failed to acquire lock. Detail: ${redisError.message}`);
+            return res.status(500).json({
+                status: "error",
+                error: {
+                    code: 500,
+                    type: "InternalServerError",
+                    message: `Internal Server Error: Failed to acquire lock. Detail: ${redisError.message}`
+                },
+                timestamp: timestamp
+            });
         }
         // ★Redisによるレートリミットのロジックここまで
         // ----------------------------------------------------
