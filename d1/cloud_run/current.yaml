@@ -5,8 +5,8 @@ metadata:
   namespace: '1021179512470'
   selfLink: /apis/serving.knative.dev/v1/namespaces/1021179512470/services/push-ops-data
   uid: bbb63b7d-cc9e-42ad-8cb9-d8fdfa7b6c04
-  resourceVersion: AAY6fhgbfo8
-  generation: 46
+  resourceVersion: AAY8YtDr9Gw
+  generation: 74
   creationTimestamp: '2025-04-08T09:56:57.566070Z'
   labels:
     cloud.googleapis.com/location: asia-northeast1
@@ -17,13 +17,15 @@ metadata:
     run.googleapis.com/build-enable-automatic-updates: 'true'
     run.googleapis.com/client-name: cloud-console
     run.googleapis.com/build-function-target: appendSpreadSheetRow
-    run.googleapis.com/build-name: projects/1021179512470/locations/asia-northeast1/builds/e209832b-3a46-4e90-a453-46b875976605
-    run.googleapis.com/build-source-location: gs://run-sources-done-dtp-deg-asia-northeast1/services/push-ops-data/1753163047.252000.zip#1753163047528028
+    run.googleapis.com/build-name: projects/1021179512470/locations/asia-northeast1/builds/cc7ea2d3-5a8d-4c67-84b8-c5829692e296
+    run.googleapis.com/build-source-location: gs://run-sources-done-dtp-deg-asia-northeast1/services/push-ops-data/1755244894.602000.zip#1755244894996857
     run.googleapis.com/build-image-uri: asia-northeast1-docker.pkg.dev/done-dtp-deg/cloud-run-source-deploy/push-ops-data
-    run.googleapis.com/operation-id: 667517af-be8c-47cc-9d0e-d61f722f6f13
+    run.googleapis.com/operation-id: 94e86924-a5c1-49ff-ba25-ec77ba654a81
     run.googleapis.com/ingress: all
     run.googleapis.com/ingress-status: all
+    run.googleapis.com/minScale: '1'
     run.googleapis.com/urls: '["https://push-ops-data-1021179512470.asia-northeast1.run.app","https://push-ops-data-rlnzfb7xsa-an.a.run.app"]'
+    run.googleapis.com/vpc-access-connector: projects/dtp-deg/locations/asia-northeast1/connectors/dtp-d1-redis-connector
 spec:
   template:
     metadata:
@@ -40,7 +42,7 @@ spec:
       serviceAccountName: dtp-d1-gateway@done-dtp-deg.iam.gserviceaccount.com
       containers:
       - name: push-ops-data-1
-        image: asia-northeast1-docker.pkg.dev/done-dtp-deg/cloud-run-source-deploy/push-ops-data@sha256:73d79bd9d5e5b323a7894cf69adefd2eb051ff8aa17a459bb6ef0a0f521932c7
+        image: asia-northeast1-docker.pkg.dev/done-dtp-deg/cloud-run-source-deploy/push-ops-data@sha256:facbd67026f026669e650d13c9e7d89d8b405a2fa6b261922fb03fa84e2373be
         ports:
         - name: http1
           containerPort: 8080
@@ -48,6 +50,13 @@ spec:
           limits:
             cpu: 1000m
             memory: 512Mi
+        env:  # ここにenvを追加
+        - name: REDIS_HOST
+          value: 10.111.204.131
+        - name: REDIS_PORT
+          value: '6379'
+        - name: REDIS_PASSWORD
+          value: '4da92137-5e03-4060-8f7f-7b6c758e17c6'
         startupProbe:
           timeoutSeconds: 240
           periodSeconds: 240
@@ -59,24 +68,24 @@ spec:
   - percent: 100
     latestRevision: true
 status:
-  observedGeneration: 46
+  observedGeneration: 74
   conditions:
   - type: Ready
     status: 'True'
-    lastTransitionTime: '2025-07-22T05:45:05.009295Z'
+    lastTransitionTime: '2025-08-15T08:02:49.849964Z'
   - type: BaseImageValidated
     status: 'True'
     severity: Info
   - type: ConfigurationsReady
     status: 'True'
-    lastTransitionTime: '2025-07-22T05:45:03.834017Z'
+    lastTransitionTime: '2025-08-15T08:02:47.430406Z'
   - type: RoutesReady
     status: 'True'
-    lastTransitionTime: '2025-07-22T05:45:04.972753Z'
-  latestReadyRevisionName: push-ops-data-00046-q55
-  latestCreatedRevisionName: push-ops-data-00046-q55
+    lastTransitionTime: '2025-08-15T08:02:49.814065Z'
+  latestReadyRevisionName: push-ops-data-00067-pl6
+  latestCreatedRevisionName: push-ops-data-00067-pl6
   traffic:
-  - revisionName: push-ops-data-00046-q55
+  - revisionName: push-ops-data-00067-pl6
     percent: 100
     latestRevision: true
   url: https://push-ops-data-rlnzfb7xsa-an.a.run.app
