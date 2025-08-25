@@ -25,12 +25,22 @@ redis.on('connect', () => console.log('Connected to Redis'));
 // 書き込みたいスプレッドシートのID
 const SHEET_ID = "1eBE0a95f8GLgClXueZEbLILKmSqPR-37PGODoBfK7cg"; //本番
 const TARGET_SHEET_NAME = "進捗管理表"; // 操作したいシート名
-const KEYS = ["order_date", "submission_count", "check_due_at", "order_number", "first_order_number", "price", "product_category2_name", "product_name", "arrange_group_name", "arrange_group_name2", "template_number", "note"];
+const KEYS = ["order_date", "submission_count", "check_due_at", "order_number", "first_order_number", "price", "product_name", "arrange_group_name", "template_number", "note"];
 
-// ロックの有効期限（秒）：これが「何秒以内に次のリクエストを拒否するか」の秒数
+// ロックの有効期限（秒）：何秒以内なら次のリクエストを拒否するか
 const LOCK_EXPIRATION_SECONDS = 5;
+let isColdStart = true;
 
 functions.http('appendSpreadSheetRow', async (req, res) => {
+
+    // TODO: インスタンス状態確認用、後で消す。
+    if (isColdStart) {
+        console.log("★★ COLD START ★★: Instance is initializing.");
+        isColdStart = false; // フラグを倒すことで、次回以降はこのブロックは実行されない
+    } else {
+        console.log("☆☆ WARM START ☆☆: Instance was already running.");
+    }
+
     const today = new Date();
     const timestamp = today.toISOString(); // ISO 8601形式のタイムスタンプ
     const jstDate = today.toLocaleString('ja-JP', { // JSTの日付と時刻
@@ -42,6 +52,15 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
         minute: '2-digit',
         second: '2-digit'
     });
+
+    // === ヘルスチェック ===
+    if (req.path === '/health') {
+        return res.status(200).json({
+            status: "ok",
+            timestamp: timestamp
+        });
+    }
+    // ===================
 
     try {
         // リクエストボディのバリデーション
