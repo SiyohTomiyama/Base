@@ -1,34 +1,11 @@
 const functions = require('@google-cloud/functions-framework');
 const { google } = require("googleapis");
-const Redis = require('ioredis'); //lock情報をやりとりするため
-
-// --- Redis クライアントの初期化 ---
-// yamlに書いた環境変数から Memorystore for Redis の情報を取得
-const redisHost = process.env.REDIS_HOST;
-const redisPort = process.env.REDIS_PORT;
-const redisPassword = process.env.REDIS_PASSWORD;
-
-// Redis クライアントインスタンスを作成
-const redis = new Redis({
-    host: redisHost,
-    port: redisPort,
-    password: redisPassword,
-    // Redis 接続が一時的に切れた場合の再試行設定（nullにすると無制限に再試行）
-    maxRetriesPerRequest: 10,
-});
-
-// Redis 接続のエラーと成功のログ出力（デバッグ用）
-redis.on('error', (err) => console.error('Redis Client Error', err));
-redis.on('connect', () => console.log('Connected to Redis'));
-// ------------------------------------
 
 // 書き込みたいスプレッドシートのID
 const SHEET_ID = "1eBE0a95f8GLgClXueZEbLILKmSqPR-37PGODoBfK7cg"; //本番
 const TARGET_SHEET_NAME = "進捗管理表"; // 操作したいシート名
 const KEYS = ["order_date", "submission_count", "check_due_at", "order_number", "first_order_number", "price", "product_name", "arrange_group_name", "template_number", "note"];
 
-// ロックの有効期限（秒）：何秒以内なら次のリクエストを拒否するか
-const LOCK_EXPIRATION_SECONDS = 5;
 let isColdStart = true;
 
 functions.http('appendSpreadSheetRow', async (req, res) => {
@@ -93,46 +70,7 @@ functions.http('appendSpreadSheetRow', async (req, res) => {
                 timestamp: timestamp
             });
         }
-        // Redisによるレートリミットのロジック
-        // スプレッドシートIDごとにユニークなロックキーを生成
-        const lockKey = `spreadsheet_append_lock:${SHEET_ID}`; // 特定のシートIDでロック
 
-        try {
-            // SET key value [EX seconds | PX milliseconds | AT timestamp | KEEPTTL] [NX | XX] [GET]
-            // 'NX': キーが存在しない場合のみセット "Not Exists" を意味
-            // 'EX': lockKey の有効期限
-            const result = await redis.set(lockKey, 'locked', 'EX', LOCK_EXPIRATION_SECONDS, 'NX');
-
-            if (result === null) {
-                // ロックを取得できなかった場合（他のリクエストが既にロックを取得している）
-                console.warn(`Concurrent or too frequent request detected for sheet ${SHEET_ID}. Rejecting.`);
-                return res.status(429).json({
-                    status: "error",
-                    error: {
-                        code: 429,
-                        type: "TooManyRequests",
-                        message: `Too many requests. Please wait ${LOCK_EXPIRATION_SECONDS} seconds before trying again.`
-                    },
-                    timestamp: timestamp
-                });
-            }
-            // ロックを取得できた場合、処理を続行
-            console.log(`Lock acquired for sheet ${SHEET_ID}.`);
-        } catch (redisError) {
-            console.error("Error acquiring Redis lock:", redisError);
-            // Redisとの通信エラーが発生した場合も、サーバーエラーとして返す
-            return res.status(500).json({
-                status: "error",
-                error: {
-                    code: 500,
-                    type: "InternalServerError",
-                    message: `Internal Server Error: Failed to acquire lock. Detail: ${redisError.message}`
-                },
-                timestamp: timestamp
-            });
-        }
-        // ★Redisによるレートリミットのロジックここまで
-        // ----------------------------------------------------
         if (typeof parsedBody !== 'object' || parsedBody === null) {
             console.error("Error: パースされたリクエストボディはJSONオブジェクトでなければなりません。");
             return res.status(400).json({
